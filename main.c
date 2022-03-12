@@ -42,11 +42,43 @@
     TERMS.
 */
 
+#include "FatFS/ff.h"
 #include "mcc_generated_files/system.h"
+
+int fatfs_read_test(void)
+{
+    FATFS fs;
+    FIL fsrc;
+    BYTE buffer[4096];
+    UINT br;
+    
+    FRESULT fm = f_mount(&fs, "0:", 0);
+    if (fm == FR_OK)
+    {
+        FRESULT fo = f_open(&fsrc, "0:test.txt", FA_READ);
+        if (fo == FR_OK)
+        {
+            FRESULT fr;
+            for (;;)
+            {
+                fr = f_read(&fsrc, buffer, sizeof buffer, &br);
+                if (br == 0) break; /* error or eof */
+            }
+        }
+    }
+    
+    f_close(&fsrc);
+    f_unmount("0:");
+    
+    return 0;
+}
 
 int main(void)
 {
     SYSTEM_Initialize();
+    
+    int test = fatfs_read_test();
+    
     while (1)
     {
         
