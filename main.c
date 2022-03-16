@@ -52,16 +52,17 @@ int fatfs_read_test(void)
     BYTE buffer[4096];
     UINT br;
     
-    FRESULT fm = f_mount(&fs, "0:", 0);
+    FRESULT fm = f_mount(&fs, "", 0);
     if (fm == FR_OK)
     {
-        FRESULT fo = f_open(&fsrc, "0:test.txt", FA_READ);
+        FRESULT fo = f_open(&fsrc, "test.txt", FA_READ);
         if (fo == FR_OK)
         {
             FRESULT fr;
             for (;;)
             {
                 fr = f_read(&fsrc, buffer, sizeof buffer, &br);
+                return 1;
                 if (br == 0) break; /* error or eof */
             }
         }
@@ -76,12 +77,21 @@ int fatfs_read_test(void)
 int main(void)
 {
     SYSTEM_Initialize();
+        
+    // BUTTON
+    TRISCbits.TRISC12 = 1;
+    // LED
+    TRISBbits.TRISB15 = 0;
     
-    int test = fatfs_read_test();
+    // Default off
+    LATBbits.LATB15 = 0;
     
     while (1)
     {
-        
+        if (PORTCbits.RC12 == 0)
+        {
+            LATBbits.LATB15 = fatfs_read_test();
+        }
     }
     return 1; 
 }
