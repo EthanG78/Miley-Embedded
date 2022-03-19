@@ -11,7 +11,7 @@
 #include "../mcc_generated_files/pin_manager.h"
 #include <xc.h>
 
-#define FCY 8000000UL
+#define FCY 4000000UL
 #include <libpic30.h>
 
 /* Definitions for MMC/SDC command */
@@ -62,7 +62,7 @@ BYTE wait_ready (void)              /* 1:Ready, 0:Timeout */
 	UINT tmr;
 
 
-	for (tmr = 5000; tmr; tmr--) {	/* Wait for ready in timeout of 500ms */
+	for (tmr = 50000; tmr; tmr--) {	/* Wait for ready in timeout of 500ms */
 		if (sd_rx() == 0xFF) break;
 		__delay_us(100);
 	}
@@ -133,38 +133,6 @@ BYTE rcvr_datablock (
 }
 
 /*-----------------------------------------------------------------------*/
-/* Send a data packet to MMC                                             */
-/*-----------------------------------------------------------------------*/
-
-static
-BYTE xmit_datablock (
-	const BYTE *buff,               /* 512 byte data block to be transmitted */
-	BYTE token                      /* Data/Stop token */
-)
-{
-	BYTE resp;
-	WORD i;
-
-
-	if (!wait_ready()) return 0;
-
-	sd_tx(token);                   /* Xmit data token */
-	if (token != 0xFD) {            /* Is data token */
-		i = 512;
-		do
-			sd_tx(*buff++);         /* Xmit the data block to the MMC */
-		while (--i);
-		sd_rx();                    /* CRC (Dummy) */
-		sd_rx();
-		resp = sd_rx();				/* Reveive data response */
-		if ((resp & 0x1F) != 0x05)	/* If not accepted, return with error */
-			return 0;
-	}
-
-	return 1;
-}
-
-/*-----------------------------------------------------------------------*/
 /* Send a command packet to MMC                                          */
 /*-----------------------------------------------------------------------*/
 
@@ -174,7 +142,7 @@ BYTE send_cmd (		/* Returns R1 resp (bit7==1:Send failed) */
 	DWORD arg		/* Argument */
 )
 {
-    BYTE n, res;
+	BYTE n, res;
 
 
 	if (cmd & 0x80) {	/* ACMD<n> is the command sequense of CMD55-CMD<n> */
@@ -190,22 +158,22 @@ BYTE send_cmd (		/* Returns R1 resp (bit7==1:Send failed) */
 	}
 
 	/* Send command packet */
-	sd_tx(0x40 | cmd);				/* Start + Command index */
-	sd_tx((BYTE)(arg >> 24));		/* Argument[31..24] */
-	sd_tx((BYTE)(arg >> 16));		/* Argument[23..16] */
+	sd_tx(0x40 | cmd);			/* Start + Command index */
+	sd_tx((BYTE)(arg >> 24));	/* Argument[31..24] */
+	sd_tx((BYTE)(arg >> 16));	/* Argument[23..16] */
 	sd_tx((BYTE)(arg >> 8));		/* Argument[15..8] */
-	sd_tx((BYTE)arg);				/* Argument[7..0] */
+	sd_tx((BYTE)arg);			/* Argument[7..0] */
 	n = 0x01;						/* Dummy CRC + Stop */
 	if (cmd == CMD0) n = 0x95;		/* Valid CRC for CMD0(0) + Stop */
-	if (cmd == CMD8) n = 0x87;		/* Valid CRC for CMD8(0x1AA) Stop */
+	if (cmd == CMD8) n = 0x87;		/* Valid CRC for CMD8(0x1AA) + Stop */
 	sd_tx(n);
 
 	/* Receive command response */
-	if (cmd == CMD12) sd_rx();          /* Skip a stuff byte when stop reading */
-	n = 10;								/* Wait for a valid response in timeout of 10 attempts */
-	do
+	if (cmd == CMD12) sd_rx();	/* Skip a stuff byte on stop to read */
+	n = 100;							/* Wait for a valid response in timeout of 10 attempts */
+	do {
 		res = sd_rx();
-	while ((res & 0x80) && --n);
+	} while ((res & 0x80) && --n);
 
 	return res;			/* Return with the response value */
 }
@@ -249,7 +217,14 @@ DSTATUS disk_initialize (
     // 125kHz to initialize the SD card
 	sd_init();
     
-	for (n = 10; n; n--) sd_rx();	/* 80 dummy clocks */
+    __delay_ms(200);
+    
+    SD_CS_SetHigh();
+    
+	for (n = 100; n; n--) sd_rx();	/* 80 dummy clocks */    
+    
+    // TESTING
+    
 
 	ty = 0;
 	if (send_cmd(CMD0, 0) == 1) {			/* Enter Idle state */
@@ -258,7 +233,7 @@ DSTATUS disk_initialize (
 			if (ocr[2] == 0x01 && ocr[3] == 0xAA) {		/* The card can work at vdd range of 2.7-3.6V */
 				for (tmr = 1000; tmr; tmr--) {			/* Wait for leaving idle state (ACMD41 with HCS bit) */
 					if (send_cmd(ACMD41, 1UL << 30) == 0) break;
-					__delay_ms(1);
+					__delay_ms(10);
 				}
 				if (tmr && send_cmd(CMD58, 0) == 0) {		/* Check CCS bit in the OCR */
 					for (n = 0; n < 4; n++) ocr[n] = sd_rx();
@@ -273,7 +248,7 @@ DSTATUS disk_initialize (
 			}
 			for (tmr = 1000; tmr; tmr--) {			/* Wait for leaving idle state */
 				if (send_cmd(cmd, 0) == 0) break;
-				__delay_ms(1);
+				__delay_ms(10);
 			}
 			if (!tmr || send_cmd(CMD16, 512) != 0)	/* Set R/W block length to 512 */
 				ty = 0;
@@ -286,6 +261,7 @@ DSTATUS disk_initialize (
 		Stat &= ~STA_NOINIT;
         // Use the Running_CONFIG with a clock frequency of
         // 2MHz for remainder of interfacing with SD card
+        spi1_close();
         sd_open();
 	}
 

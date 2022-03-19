@@ -37,8 +37,8 @@ void spi1_close(void)
 typedef struct { uint16_t con1; uint16_t brg; uint8_t operation;} spi1_configuration_t;
 static const spi1_configuration_t spi1_configuration[] = {   
     { 0x0120, 0x0000, 0 },
-    { 0x0120, 0x000F, 0 },
-    { 0x0120, 0x000F, 0 }
+    { 0x0120, 0x0001, 0 },
+    { 0x0120, 0x0007, 0 }
 };
 
 bool spi1_open(spi1_modes spiUniqueConfiguration)
@@ -47,7 +47,7 @@ bool spi1_open(spi1_modes spiUniqueConfiguration)
     {
         SPI1CON1L = spi1_configuration[spiUniqueConfiguration].con1;
         SPI1BRGL = spi1_configuration[spiUniqueConfiguration].brg;
-        
+                
         TRISBbits.TRISB13 = spi1_configuration[spiUniqueConfiguration].operation;
         SPI1CON1Lbits.SPIEN = 1;
         return true;

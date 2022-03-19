@@ -58,11 +58,11 @@ int fatfs_read_test(void)
         FRESULT fo = f_open(&fsrc, "test.txt", FA_READ);
         if (fo == FR_OK)
         {
+            return 1;
             FRESULT fr;
             for (;;)
             {
-                fr = f_read(&fsrc, buffer, sizeof buffer, &br);
-                return 1;
+                fr = f_read(&fsrc, buffer, sizeof buffer, &br);  
                 if (br == 0) break; /* error or eof */
             }
         }
@@ -86,10 +86,13 @@ int main(void)
     // Default off
     LATBbits.LATB15 = 0;
     
+    int hasRun = 0;
+    
     while (1)
     {
-        if (PORTCbits.RC12 == 0)
+        if (PORTCbits.RC12 == 0 && !hasRun)
         {
+            hasRun++;
             LATBbits.LATB15 = fatfs_read_test();
         }
     }
