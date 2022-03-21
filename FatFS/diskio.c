@@ -218,7 +218,6 @@ DSTATUS disk_initialize (
     // 125kHz to initialize the SD card
 	spi_open_initializer();
     
-    
     // Wait for at least 1 ms after setting
     // SPI clock frequency. Set DI line and CS line of
     // SD card high and send AT LEAST 74 clock pulses.
@@ -238,7 +237,9 @@ DSTATUS disk_initialize (
     }
     
     __builtin_write_RPCON(0x0000);  // unlock PPS
+    
     RPOR15bits.RP63R = 5;           //RC15->SPI1:SDO1
+    
     __builtin_write_RPCON(0x0800);  // lock PPS
     
 	ty = 0;
