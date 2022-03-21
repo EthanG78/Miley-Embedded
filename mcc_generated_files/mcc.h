@@ -53,12 +53,12 @@
 #include "system_types.h"
 #include "reset.h"
 
-#include "drivers/spi_master.h"
-#include "reset.h"
-#include "watchdog.h"
 #include "interrupt_manager.h"
 #include "traps.h"
+#include "reset.h"
 #include "spi1_driver.h"
+#include "drivers/spi_master.h"
+#include "watchdog.h"
 
 #warning "This file will be removed in future MCC releases. Use system.h instead."
 

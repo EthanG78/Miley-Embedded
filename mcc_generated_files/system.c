@@ -124,10 +124,10 @@
 #include "clock.h"
 #include "system.h"
 #include "system_types.h"
-#include "drivers/spi_master.h"
 #include "interrupt_manager.h"
 #include "traps.h"
 #include "spi1_driver.h"
+#include "drivers/spi_master.h"
 
 void SYSTEM_Initialize(void)
 {
