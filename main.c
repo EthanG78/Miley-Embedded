@@ -1,50 +1,45 @@
-/**
-  Generated main.c file from MPLAB Code Configurator
-
-  @Company
-    Microchip Technology Inc.
-
-  @File Name
-    main.c
-
-  @Summary
-    This is the generated main.c using PIC24 / dsPIC33 / PIC32MM MCUs.
-
-  @Description
-    This source file provides main entry point for system initialization and application code development.
-    Generation Information :
-        Product Revision  :  PIC24 / dsPIC33 / PIC32MM MCUs - 1.171.1
-        Device            :  dsPIC33CK256MP506
-    The generated drivers are tested against the following:
-        Compiler          :  XC16 v1.70
-        MPLAB 	          :  MPLAB X v5.50
-*/
-
 /*
-    (c) 2020 Microchip Technology Inc. and its subsidiaries. You may use this
-    software and any derivatives exclusively with Microchip products.
+ * File:   main.c
+ * Author: ethang
+ *
+ * Created on March 21, 2022, 12:05 PM
+ */
+// For debugging
+#pragma config ICS = 2
 
-    THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER
-    EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED
-    WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A
-    PARTICULAR PURPOSE, OR ITS INTERACTION WITH MICROCHIP PRODUCTS, COMBINATION
-    WITH ANY OTHER PRODUCTS, OR USE IN ANY APPLICATION.
-
-    IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE,
-    INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND
-    WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS
-    BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE. TO THE
-    FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN
-    ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
-    THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
-
-    MICROCHIP PROVIDES THIS SOFTWARE CONDITIONALLY UPON YOUR ACCEPTANCE OF THESE
-    TERMS.
-*/
-
+#include "xc.h"
+#include "spi_driver.h"
 #include "FatFS/ff.h"
-#include "mcc_generated_files/system.h"
 
+#define FCY 4000000UL
+#include <libpic30.h>
+
+// Initializes system I/O, 
+void init(void)
+{
+    // SPI RELATED TRIS 
+    TRISCbits.TRISC14 = 1;          // RC14 SDI1 input
+    TRISCbits.TRISC15 = 0;          // RC15 SDO1 output
+    TRISBbits.TRISB13 = 0;          // RB13 SCK1 output
+    TRISBbits.TRISB14 = 0;          // RB14 CS output
+    
+    // SD Card Trigger Button
+    TRISCbits.TRISC12 = 1;
+    
+    // Status LED (default off)
+    TRISBbits.TRISB15 = 0;
+    LATBbits.LATB15 = 0;
+    
+    __builtin_write_RPCON(0x0000);  // unlock PPS
+
+    RPOR6bits.RP45R = 6;            //RB13->SPI1:SCK1OUT
+    RPINR20bits.SDI1R = 62;         //RC14->SPI1:SDI1
+    //RPOR15bits.RP63R = 5;           //RC15->SPI1:SDO1
+
+    __builtin_write_RPCON(0x0800);  // lock PPS
+}
+
+// Test FatFS functionality
 int fatfs_read_test(void)
 {
     FATFS fs;
@@ -74,28 +69,38 @@ int fatfs_read_test(void)
     return 0;
 }
 
-int main(void)
+int spi_read_write_test(void)
 {
-    SYSTEM_Initialize();
-        
-    // BUTTON
-    TRISCbits.TRISC12 = 1;
-    // LED
-    TRISBbits.TRISB15 = 0;
+    // Initialize to 125 KHz
+    spi_open_initializer();
     
-    // Default off
-    LATBbits.LATB15 = 0;
+    __delay_ms(200);
     
+    spi_exchangeByte(0xEB);
+    
+    uint8_t rx = spi_exchangeByte(0xFF);
+    
+    spi_close();
+    
+    return 1;
+}
+
+int main(void) {
+    init();
+    
+    // Only let FatFS test run once
     int hasRun = 0;
     
+    LATCbits.LATC15 = 1;
+        
     while (1)
     {
         if (PORTCbits.RC12 == 0 && !hasRun)
         {
             hasRun++;
             LATBbits.LATB15 = fatfs_read_test();
+            //LATBbits.LATB15 = spi_read_write_test();
         }
     }
     return 1; 
 }
-

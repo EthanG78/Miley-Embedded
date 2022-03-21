@@ -8,7 +8,6 @@
 /*-----------------------------------------------------------------------*/
 
 #include "diskio.h"		/* Declarations of disk functions */
-#include "../mcc_generated_files/pin_manager.h"
 #include <xc.h>
 
 #define FCY 4000000UL
@@ -62,8 +61,8 @@ BYTE wait_ready (void)              /* 1:Ready, 0:Timeout */
 	UINT tmr;
 
 
-	for (tmr = 50000; tmr; tmr--) {	/* Wait for ready in timeout of 500ms */
-		if (sd_rx() == 0xFF) break;
+	for (tmr = 5000; tmr; tmr--) {	/* Wait for ready in timeout of 500ms */
+		if (spi_exchangeByte(0xFF) == 0xFF) break;
 		__delay_us(100);
 	}
 
@@ -79,8 +78,9 @@ BYTE wait_ready (void)              /* 1:Ready, 0:Timeout */
 static
 void deselect (void)
 {
-	SD_CS_SetHigh();	/* Set CS high */
-	sd_rx();            /* Dummy clock (force DO hi-z for multiple slave SPI) */
+	spi_cs_high();
+    //spi_cs_low();
+	spi_exchangeByte(0xFF);            /* Dummy clock (force DO hi-z for multiple slave SPI) */
 }
 
 
@@ -92,8 +92,9 @@ void deselect (void)
 static
 BYTE select (void)              /* 1:Successful, 0:Timeout */
 {
-	SD_CS_SetLow();             /* Set CS# low */
-	sd_rx();                    /* Dummy clock (force DO enabled) */
+	spi_cs_low();
+    //spi_cs_high();
+	spi_exchangeByte(0xFF);                    /* Dummy clock (force DO enabled) */
 	if (wait_ready()) return 1;	/* Wait for card ready */
 
 	deselect();
@@ -117,17 +118,17 @@ BYTE rcvr_datablock (
 
 
 	for (tmr = 2000; tmr; tmr--) {	/* Wait for data packet in timeout of 200ms */
-		token = sd_rx();
+		token = spi_exchangeByte(0xFF);
 		if (token != 0xFF) break;
 		__delay_us(100);
 	}
 	if (token != 0xFE) return 0;	/* If not valid data token, retutn with error */
 
 	do
-		*buff++ = sd_rx();          /* Receive the data block into buffer */
+		*buff++ = spi_exchangeByte(0xFF);          /* Receive the data block into buffer */
 	while (--btr);
-	sd_rx();                        /* Discard CRC */
-	sd_rx();
+	spi_exchangeByte(0xFF);                        /* Discard CRC */
+	spi_exchangeByte(0xFF);
 
 	return 1;                       /* Return with success */
 }
@@ -158,21 +159,21 @@ BYTE send_cmd (		/* Returns R1 resp (bit7==1:Send failed) */
 	}
 
 	/* Send command packet */
-	sd_tx(0x40 | cmd);			/* Start + Command index */
-	sd_tx((BYTE)(arg >> 24));	/* Argument[31..24] */
-	sd_tx((BYTE)(arg >> 16));	/* Argument[23..16] */
-	sd_tx((BYTE)(arg >> 8));		/* Argument[15..8] */
-	sd_tx((BYTE)arg);			/* Argument[7..0] */
+	spi_exchangeByte(0x40 | cmd);			/* Start + Command index */
+	spi_exchangeByte((BYTE)(arg >> 24));	/* Argument[31..24] */
+	spi_exchangeByte((BYTE)(arg >> 16));	/* Argument[23..16] */
+	spi_exchangeByte((BYTE)(arg >> 8));		/* Argument[15..8] */
+	spi_exchangeByte((BYTE)arg);			/* Argument[7..0] */
 	n = 0x01;						/* Dummy CRC + Stop */
 	if (cmd == CMD0) n = 0x95;		/* Valid CRC for CMD0(0) + Stop */
 	if (cmd == CMD8) n = 0x87;		/* Valid CRC for CMD8(0x1AA) + Stop */
-	sd_tx(n);
+	spi_exchangeByte(n);
 
 	/* Receive command response */
-	if (cmd == CMD12) sd_rx();	/* Skip a stuff byte on stop to read */
+	if (cmd == CMD12) spi_exchangeByte(0xFF);	/* Skip a stuff byte on stop to read */
 	n = 100;							/* Wait for a valid response in timeout of 10 attempts */
 	do {
-		res = sd_rx();
+		res = spi_exchangeByte(0xFF);
 	} while ((res & 0x80) && --n);
 
 	return res;			/* Return with the response value */
@@ -215,28 +216,42 @@ DSTATUS disk_initialize (
 
     // Use the Initialize_CONFIG with a clock frequency of
     // 125kHz to initialize the SD card
-	sd_init();
+	spi_open_initializer();
     
-    __delay_ms(200);
     
-    SD_CS_SetHigh();
+    // Wait for at least 1 ms after setting
+    // SPI clock frequency. Set DI line and CS line of
+    // SD card high and send AT LEAST 74 clock pulses.
+    // NOTE: As you can see below, the RC15 has not yet
+    // been assigned to SDO1. This is to ensure we can keep 
+    // the line high the ENTIRE TIME we are pushing these 
+    // clock pulses
+    __delay_ms(3);
     
-	for (n = 100; n; n--) sd_rx();	/* 80 dummy clocks */    
+    spi_do_high();
+    spi_cs_high();
     
-    // TESTING
+    /* at least 74 dummy clocks */    
+    for (int k = 0; k < 11; k++)
+    {
+        spi_exchangeByte(0xFF);
+    }
     
-
+    __builtin_write_RPCON(0x0000);  // unlock PPS
+    RPOR15bits.RP63R = 5;           //RC15->SPI1:SDO1
+    __builtin_write_RPCON(0x0800);  // lock PPS
+    
 	ty = 0;
 	if (send_cmd(CMD0, 0) == 1) {			/* Enter Idle state */
 		if (send_cmd(CMD8, 0x1AA) == 1) {	/* SDv2? */
-			for (n = 0; n < 4; n++) ocr[n] = sd_rx();	/* Get trailing return value of R7 resp */
+			for (n = 0; n < 4; n++) ocr[n] = spi_exchangeByte(0xFF);	/* Get trailing return value of R7 resp */
 			if (ocr[2] == 0x01 && ocr[3] == 0xAA) {		/* The card can work at vdd range of 2.7-3.6V */
 				for (tmr = 1000; tmr; tmr--) {			/* Wait for leaving idle state (ACMD41 with HCS bit) */
 					if (send_cmd(ACMD41, 1UL << 30) == 0) break;
 					__delay_ms(10);
 				}
 				if (tmr && send_cmd(CMD58, 0) == 0) {		/* Check CCS bit in the OCR */
-					for (n = 0; n < 4; n++) ocr[n] = sd_rx();
+					for (n = 0; n < 4; n++) ocr[n] = spi_exchangeByte(0xFF);
 					ty = (ocr[0] & 0x40) ? CT_SD2 | CT_BLOCK : CT_SD2;	/* SDv2 */
 				}
 			}
@@ -261,8 +276,8 @@ DSTATUS disk_initialize (
 		Stat &= ~STA_NOINIT;
         // Use the Running_CONFIG with a clock frequency of
         // 2MHz for remainder of interfacing with SD card
-        spi1_close();
-        sd_open();
+        spi_close();
+        spi_open_reading();
 	}
 
 	return Stat;
@@ -347,9 +362,9 @@ DRESULT disk_ioctl (
 	case GET_BLOCK_SIZE :	/* Get erase block size in unit of sector (DWORD) */
 		if (CardType & CT_SD2) {	/* SDv2? */
 			if (send_cmd(ACMD13, 0) == 0) {	/* Read SD status */
-				sd_rx();
+				spi_exchangeByte(0xFF);
 				if (rcvr_datablock(csd, 16)) {				/* Read partial block */
-					for (n = 64 - 16; n; n--) sd_rx();	/* Purge trailing data */
+					for (n = 64 - 16; n; n--) spi_exchangeByte(0xFF);	/* Purge trailing data */
 					*(DWORD*)buff = 16UL << (csd[10] >> 4);
 					res = RES_OK;
 				}
@@ -387,14 +402,14 @@ DRESULT disk_ioctl (
 
 	case MMC_GET_OCR :		/* Receive OCR as an R3 resp (4 bytes) */
 		if (send_cmd(CMD58, 0) == 0) {	/* READ_OCR */
-			for (n = 4; n; n--) *ptr++ = sd_rx();
+			for (n = 4; n; n--) *ptr++ = spi_exchangeByte(0xFF);
 			res = RES_OK;
 		}
 		break;
 
 	case MMC_GET_SDSTAT :	/* Receive SD statsu as a data block (64 bytes) */
 		if (send_cmd(ACMD13, 0) == 0) {	/* SD_STATUS */
-			sd_rx();
+			spi_exchangeByte(0xFF);
 			if (rcvr_datablock(ptr, 64))
 				res = RES_OK;
 		}
