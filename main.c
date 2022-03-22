@@ -38,14 +38,14 @@ void init(void)
     __builtin_write_RPCON(0x0000);  // unlock PPS
 
     RPOR6bits.RP45R = 6;            //RB13->SPI1:SCK1OUT
-    RPINR20bits.SDI1R = 62;         //RC14->SPI1:SDI1
+    //RPINR20bits.SDI1R = 62;         //RC14->SPI1:SDI1
     
     // For some reason we need to run
     // it with this uncommented and the above
     // line commented, then comment this line
     // and run the program with 
     // SDI1 set to RP62 for it to work????
-    //RPINR20bits.SDI1R = 44;
+    RPINR20bits.SDI1R = 44;
 
     __builtin_write_RPCON(0x0800);  // lock PPS
 }
@@ -108,12 +108,13 @@ int fatfs_read_test(void)
             }
             _hasRun = 0;
             spi_close();
+            f_close(&fsrc);
+            f_unmount("0:");
             return 1;
         }
     }
     
     spi_close();
-    
     f_close(&fsrc);
     f_unmount("0:");
     
@@ -123,17 +124,19 @@ int fatfs_read_test(void)
 int main(void) {
     
     init();
-    
-    // SDO
-    //LATCbits.LATC15 = 1;
         
     while (1)
     {
         if (PORTCbits.RC12 == 0 && !_hasRun)
         {
             _hasRun++;
-            //LATBbits.LATB15 = fatfs_read_test();
-            LATBbits.LATB15 = fatfs_list_directory_test();
+            LATBbits.LATB15 = fatfs_read_test();
+            //LATBbits.LATB15 = fatfs_list_directory_test();
+            
+            
+            // Turn the light back off if we passd
+            __delay_ms(3000);
+            LATBbits.LATB15 = 0;
         }
     }
     return 1; 
