@@ -7,6 +7,8 @@
 // For debugging
 #pragma config ICS = 2
 
+#include <stdio.h>
+#include <string.h>
 #include "xc.h"
 #include "spi_driver.h"
 #include "FatFS/ff.h"
@@ -48,7 +50,43 @@ void init(void)
     __builtin_write_RPCON(0x0800);  // lock PPS
 }
 
-// Test FatFS functionality
+// Test opening a directory and listing all the files within that directory
+int fatfs_list_directory_test(void)
+{
+    FATFS fs;
+    DIR dir;
+    FRESULT res;
+    char buff[256];
+    static FILINFO fno;
+    
+    res = f_mount(&fs, "", 0);
+    if (res == FR_OK) {
+        strcpy(buff, "/");
+        res = f_opendir(&dir, buff);
+        if (res == FR_OK)
+        {
+            for (;;) {
+                // Read a directory item
+                res = f_readdir(&dir, &fno);      
+                // Break on error or end of dir
+                if (res != FR_OK || fno.fname[0] == 0) break;
+                if (fno.fattrib & AM_DIR) {                    
+                    // This is a directory
+                } else {        
+                    // This is a file
+                    // Get file name
+                    int x = 9; // stall
+                }
+            }
+            _hasRun = 0;
+            f_closedir(&dir);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+// Test opening and reading a file
 int fatfs_read_test(void)
 {
     FATFS fs;
@@ -82,35 +120,20 @@ int fatfs_read_test(void)
     return 0;
 }
 
-int spi_read_write_test(void)
-{
-    // Initialize to 125 KHz
-    spi_open_initializer();
-    
-    __delay_ms(200);
-    
-    spi_exchangeByte(0xEB);
-    
-    uint8_t rx = spi_exchangeByte(0xFF);
-    
-    spi_close();
-    
-    return 1;
-}
-
 int main(void) {
     
     init();
     
-    LATCbits.LATC15 = 1;
+    // SDO
+    //LATCbits.LATC15 = 1;
         
     while (1)
     {
         if (PORTCbits.RC12 == 0 && !_hasRun)
         {
             _hasRun++;
-            LATBbits.LATB15 = fatfs_read_test();
-            //LATBbits.LATB15 = spi_read_write_test();
+            //LATBbits.LATB15 = fatfs_read_test();
+            LATBbits.LATB15 = fatfs_list_directory_test();
         }
     }
     return 1; 
