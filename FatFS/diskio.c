@@ -242,19 +242,6 @@ DSTATUS disk_initialize (
     
     __builtin_write_RPCON(0x0800);  // lock PPS
     
-    // Workaround for weird issue
-    // where we need to set the SDI
-    // pin to something else, run it, and then
-    // set it back to RP62 (RC14)
-    //send_cmd(CMD0, 0);
-    
-    //__builtin_write_RPCON(0x0000);  // unlock PPS
-    
-    //RPINR20bits.SDI1R = 62;         //RC14->SPI1:SDI1
-    
-    //__builtin_write_RPCON(0x0800);  // lock PPS
-    
-    
 	ty = 0;
 	if (send_cmd(CMD0, 0) == 1) {			/* Enter Idle state */
 		if (send_cmd(CMD8, 0x1AA) == 1) {	/* SDv2? */
