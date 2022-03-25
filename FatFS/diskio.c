@@ -145,7 +145,6 @@ BYTE send_cmd (		/* Returns R1 resp (bit7==1:Send failed) */
 {
 	BYTE n, res;
 
-
 	if (cmd & 0x80) {	/* ACMD<n> is the command sequense of CMD55-CMD<n> */
 		cmd &= 0x7F;
 		res = send_cmd(CMD55, 0);
