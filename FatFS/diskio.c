@@ -145,7 +145,6 @@ BYTE send_cmd (		/* Returns R1 resp (bit7==1:Send failed) */
 {
 	BYTE n, res;
 
-
 	if (cmd & 0x80) {	/* ACMD<n> is the command sequense of CMD55-CMD<n> */
 		cmd &= 0x7F;
 		res = send_cmd(CMD55, 0);
@@ -241,19 +240,6 @@ DSTATUS disk_initialize (
     RPOR15bits.RP63R = 5;           //RC15->SPI1:SDO1
     
     __builtin_write_RPCON(0x0800);  // lock PPS
-    
-    // Workaround for weird issue
-    // where we need to set the SDI
-    // pin to something else, run it, and then
-    // set it back to RP62 (RC14)
-    //send_cmd(CMD0, 0);
-    
-    //__builtin_write_RPCON(0x0000);  // unlock PPS
-    
-    //RPINR20bits.SDI1R = 62;         //RC14->SPI1:SDI1
-    
-    //__builtin_write_RPCON(0x0800);  // lock PPS
-    
     
 	ty = 0;
 	if (send_cmd(CMD0, 0) == 1) {			/* Enter Idle state */
