@@ -1,0 +1,21 @@
+# C++
+build*/
+cmake-build-*/
+compile_commands.json
+.[Cc]ache/
+
+# Editors
+.idea/
+.vscode/
+.vs/
+.settings/
+debug/
+dist/
+.generated_files/
+nbproject/
+
+# MacOS
+.DS_Store/
+
+# Generic
+*.log
