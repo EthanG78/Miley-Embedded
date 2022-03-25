@@ -1,55 +1,89 @@
-/**
-  Generated main.c file from MPLAB Code Configurator
-
-  @Company
-    Microchip Technology Inc.
-
-  @File Name
-    main.c
-
-  @Summary
-    This is the generated main.c using PIC24 / dsPIC33 / PIC32MM MCUs.
-
-  @Description
-    This source file provides main entry point for system initialization and application code development.
-    Generation Information :
-        Product Revision  :  PIC24 / dsPIC33 / PIC32MM MCUs - 1.171.1
-        Device            :  dsPIC33CK256MP506
-    The generated drivers are tested against the following:
-        Compiler          :  XC16 v1.70
-        MPLAB 	          :  MPLAB X v5.50
-*/
-
 /*
-    (c) 2020 Microchip Technology Inc. and its subsidiaries. You may use this
-    software and any derivatives exclusively with Microchip products.
+ * File:   main.c
+ * Author: ethang
+ *
+ * Created on March 21, 2022, 12:05 PM
+ */
+// For debugging
+#pragma config ICS = 2
 
-    THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER
-    EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED
-    WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A
-    PARTICULAR PURPOSE, OR ITS INTERACTION WITH MICROCHIP PRODUCTS, COMBINATION
-    WITH ANY OTHER PRODUCTS, OR USE IN ANY APPLICATION.
-
-    IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE,
-    INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND
-    WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS
-    BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE. TO THE
-    FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN
-    ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
-    THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
-
-    MICROCHIP PROVIDES THIS SOFTWARE CONDITIONALLY UPON YOUR ACCEPTANCE OF THESE
-    TERMS.
-*/
-
+#include <stdio.h>
+#include <string.h>
+#include "xc.h"
+#include "spi_driver.h"
 #include "FatFS/ff.h"
-#include "mcc_generated_files/system.h"
 
+#define FCY 4000000UL
+#include <libpic30.h>
+
+static int _hasRun = 0;
+
+// Initializes system I/O, 
+void init(void)
+{
+    // SPI RELATED TRIS 
+    TRISCbits.TRISC14 = 1;          // RC14 SDI1 input
+    TRISCbits.TRISC15 = 0;          // RC15 SDO1 output
+    TRISBbits.TRISB13 = 0;          // RB13 SCK1 output
+    TRISBbits.TRISB14 = 0;          // RB14 CS output
+    
+    // SD Card Trigger Button
+    TRISCbits.TRISC12 = 1;
+    
+    // Status LED (default off)
+    TRISBbits.TRISB15 = 0;
+    LATBbits.LATB15 = 0;
+    
+    __builtin_write_RPCON(0x0000);  // unlock PPS
+
+    RPOR6bits.RP45R = 6;            //RB13->SPI1:SCK1OUT
+    RPINR20bits.SDI1R = 62;         //RC14->SPI1:SDI1
+    
+    __builtin_write_RPCON(0x0800);  // lock PPS
+}
+
+// Test opening a directory and listing all the files within that directory
+int fatfs_list_directory_test(void)
+{
+    FATFS fs;
+    DIR dir;
+    FRESULT res;
+    char buff[256];
+    static FILINFO fno;
+    
+    res = f_mount(&fs, "", 0);
+    if (res == FR_OK) {
+        strcpy(buff, "/");
+        res = f_opendir(&dir, buff);
+        if (res == FR_OK)
+        {
+            for (;;) {
+                // Read a directory item
+                res = f_readdir(&dir, &fno);      
+                // Break on error or end of dir
+                if (res != FR_OK || fno.fname[0] == 0) break;
+                if (fno.fattrib & AM_DIR) {                    
+                    // This is a directory
+                } else {        
+                    // This is a file
+                    // Get file name
+                    int x = 9; // stall
+                }
+            }
+            _hasRun = 0;
+            f_closedir(&dir);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+// Test opening and reading a file
 int fatfs_read_test(void)
 {
     FATFS fs;
     FIL fsrc;
-    BYTE buffer[4096];
+    BYTE buffer[4096 * 20];
     UINT br;
     
     FRESULT fm = f_mount(&fs, "", 0);
@@ -58,44 +92,44 @@ int fatfs_read_test(void)
         FRESULT fo = f_open(&fsrc, "test.txt", FA_READ);
         if (fo == FR_OK)
         {
-            return 1;
             FRESULT fr;
             for (;;)
             {
                 fr = f_read(&fsrc, buffer, sizeof buffer, &br);  
                 if (br == 0) break; /* error or eof */
             }
+            _hasRun = 0;
+            spi_close();
+            f_close(&fsrc);
+            f_unmount("0:");
+            return 1;
         }
     }
     
+    spi_close();
     f_close(&fsrc);
     f_unmount("0:");
     
     return 0;
 }
 
-int main(void)
-{
-    SYSTEM_Initialize();
+int main(void) {
+    
+    init();
         
-    // BUTTON
-    TRISCbits.TRISC12 = 1;
-    // LED
-    TRISBbits.TRISB15 = 0;
-    
-    // Default off
-    LATBbits.LATB15 = 0;
-    
-    int hasRun = 0;
-    
     while (1)
     {
-        if (PORTCbits.RC12 == 0 && !hasRun)
+        if (PORTCbits.RC12 == 0 && !_hasRun)
         {
-            hasRun++;
+            _hasRun++;
             LATBbits.LATB15 = fatfs_read_test();
+            //LATBbits.LATB15 = fatfs_list_directory_test();
+            
+            
+            // Turn the light back off if we passed
+            __delay_ms(3000);
+            LATBbits.LATB15 = 0;
         }
     }
     return 1; 
 }
-

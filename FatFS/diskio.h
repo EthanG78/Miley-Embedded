@@ -3,8 +3,8 @@
 /-----------------------------------------------------------------------*/
 
 #include "ff.h"
-#include "../mcc_generated_files/spi1_driver.h"
-#include "../mcc_generated_files/spi1_types.h"
+#include "../spi_driver.h"
+
 #ifndef _DISKIO_DEFINED
 #define _DISKIO_DEFINED
 
@@ -72,14 +72,6 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 #define ATA_GET_REV			20	/* Get F/W revision */
 #define ATA_GET_MODEL		21	/* Get model name */
 #define ATA_GET_SN			22	/* Get serial number */
-
-// ADDING THESE FROM MCC
-#define sd_init()	spi1_open(Initialize_CONFIG)
-#define sd_open()	spi1_open(Running_CONFIG)
-
-// Review the tx and rx functions
-#define sd_tx(d)	spi1_exchangeByte(d)
-#define sd_rx()		spi1_exchangeByte(0xFF)
 
 #ifdef __cplusplus
 }
