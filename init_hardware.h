@@ -1,4 +1,5 @@
-#pragma once
+#ifndef INIT_HARDWARE_H
+#define INIT_HARDWARE_H
 
 #include <stdint.h>
 
@@ -12,3 +13,5 @@ void init_primary_pll();
 
 int setup_pwm();
 void setup_dac();
+
+#endif

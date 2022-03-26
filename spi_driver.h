@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SPI_DRIVER_H
+#define SPI_DRIVER_H
 
 #include <stdint.h>
 
@@ -12,3 +13,5 @@ void spi_cs_high(void);
 
 void spi_do_high();
 void spi_do_low();
+
+#endif

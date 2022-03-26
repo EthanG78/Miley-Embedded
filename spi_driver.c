@@ -33,6 +33,7 @@ void spi_open_initializer(void) {
   // the following formula
   // Baud Rate = Fp / (2 * (SPIxBRG  + 1))
   // For a Baud Rate of 125 000, SPIxBRG = 15
+  //SPI1BRGLbits.BRG = 0x7FE;
   SPI1BRGLbits.BRG = 0xF;
 
   SPI1STATLbits.SPIROV = 0;
@@ -81,6 +82,7 @@ void spi_open_reading(void) {
   // For a Baud Rate of 2 000 000, SPIxBRG = 0
   // TODO: We may need to lower the baud rate
   // for reliable communication
+  //SPI1BRGLbits.BRG = 0x80;
   SPI1BRGLbits.BRG = 0;
 
   SPI1STATLbits.SPIROV = 0;

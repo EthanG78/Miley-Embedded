@@ -14,7 +14,7 @@ void init_spi_io(void) {
 
   // Status LED (default off)
   TRISBbits.TRISB15 = PIN_OUTPUT;
-  LATBbits.LATB15 = PIN_OUTPUT;
+  LATBbits.LATB15 = 0;
 
   __builtin_write_RPCON(0x0000);  // unlock PPS
 
@@ -41,11 +41,10 @@ void init_interrupts() {
 }
 
 void init_primary_pll() {
-  // system clock is 32MHz * 16 = 512MHz
-  CLKDIVbits.PLLPRE = 1;     // no clock prescaling
+  CLKDIVbits.PLLPRE = 4;    // PLL input clock div
   PLLFBDbits.PLLFBDIV = 16;  // PLL feedback div
-  PLLDIVbits.POST1DIV = 1;   // F_PLL output div1
-  PLLDIVbits.POST2DIV = 1;   // F_PLL output div2
+  PLLDIVbits.POST1DIV = 1;  // F_PLL output div1
+  PLLDIVbits.POST2DIV = 1;  // F_PLL output div2
 }
 
 int setup_pwm() {
@@ -60,7 +59,7 @@ int setup_pwm() {
   PG8IOCONHbits.PENL = 1;   // pwm output drives PMW8L pin
   PG8IOCONHbits.POLL = 0;   // active high output
   PG8EVTLbits.UPDTRG = 1;   // writes to PGxDC register sets the UPDATE bit
-  PG8PER = (uint16_t)(~0);  // pwm period -> max out 16bits
+  PG8PER = ~0;              // pwm period -> max out 16bits
   PG8DC = 1000;             // pwm duty cycle
   PG8PHASE = 0;             // 0 phase shift
   PG8CONLbits.ON = 1;       // enable PWM module
@@ -71,7 +70,7 @@ int setup_pwm() {
   }
 
   // wait for high resolution circuitry to become available
-  while (PCLKCONbits.HRRDY != 1) {
+  while (!PCLKCONbits.HRRDY) {
     continue;
   }
 
@@ -84,5 +83,5 @@ void setup_dac() {
   DAC1CONLbits.DACOEN = 1;       // enable DAC 1 output on pin DACOUT1
   DAC1CONLbits.DACEN = 1;        // enable Master DAC 1
   DACCTRL1Lbits.DACON = 1;       // turn ON all Master DACs */
-  DAC1DATHbits.DACDATH = 0x4D9;  // dac output value
+  DAC1DATHbits.DACDATH = 0x4D9;  // dac initial output value
 }

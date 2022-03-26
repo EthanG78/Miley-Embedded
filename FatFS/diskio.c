@@ -10,7 +10,7 @@
 #include "diskio.h"		/* Declarations of disk functions */
 #include <xc.h>
 
-#define FCY 4000000UL
+#define FCY 64000000UL
 #include <libpic30.h>
 
 /* Definitions for MMC/SDC command */
@@ -273,7 +273,7 @@ DSTATUS disk_initialize (
 	CardType = ty;
 	deselect();
 
-	if (ty) {			/* Initialization succeded */
+	if (ty) {			/* Initialization succeeded */
 		Stat &= ~STA_NOINIT;
         // Use the Running_CONFIG with a clock frequency of
         // 2MHz for remainder of interfacing with SD card

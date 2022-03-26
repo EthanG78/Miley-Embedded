@@ -1,17 +1,13 @@
-/*
- * File:   main.c
- * Author: ethang
- *
- * Created on March 21, 2022, 12:05 PM
- */
+#include "chip_fuse_bits.h"
 #include "init_hardware.h"
 #include <stdio.h>
 #include <xc.h>
+#include <string.h>
 
 #include "FatFS/ff.h"
 #include "spi_driver.h"
 
-#define FCY 4000000UL
+#define FCY 64000000UL
 #include <libpic30.h>
 
 static int _hasRun = 0;
@@ -26,7 +22,7 @@ int fatfs_list_directory_test(void) {
 
   res = f_mount(&fs, "", 0);
   if (res == FR_OK) {
-    buff[0] = '/';
+    strcpy(buff, "/");
     res = f_opendir(&dir, buff);
     if (res == FR_OK) {
       for (;;) {
@@ -42,7 +38,6 @@ int fatfs_list_directory_test(void) {
           int x = 9;  // stall
         }
       }
-      _hasRun = 0;
       f_closedir(&dir);
       return 1;
     }
@@ -54,7 +49,7 @@ int fatfs_list_directory_test(void) {
 int fatfs_read_test(void) {
   FATFS fs;
   FIL fsrc;
-  BYTE buffer[4096];
+  BYTE buffer[4096 * 2];
   UINT br;
 
   FRESULT fm = f_mount(&fs, "", 0);
@@ -66,7 +61,6 @@ int fatfs_read_test(void) {
         fr = f_read(&fsrc, buffer, sizeof buffer, &br);
         if (br == 0) break; /* error or eof */
       }
-      _hasRun = 0;
       spi_close();
       f_close(&fsrc);
       f_unmount("0:");
@@ -82,30 +76,33 @@ int fatfs_read_test(void) {
 }
 
 void switch_to_primary_oscillator() {
-  // Initiate Clock Switch to Primary Oscillator with PLL (NOSC=0b011)
+  // initiate clock switch to primary oscillator with PLL (NOSC=0b011)
   __builtin_write_OSCCONH(0x03);
   __builtin_write_OSCCONL(OSCCON | 0x01);
-  // Wait for Clock switch to occur
+  // wait for Clock switch to occur
   while (OSCCONbits.OSWEN!= 0);
 
-  // Wait for PLL to lock
-  while (OSCCONbits.LOCK!= 1);
+  // wait for PLL to lock
+  while (OSCCONbits.LOCK != 1);
 }
 
 int main(void) {
+  init_primary_pll();
   switch_to_primary_oscillator();
   init_spi_io();
-
-  while (1) {
-    if (PORTCbits.RC12 == 0 && !_hasRun) {
+  LATBbits.LATB15 = 1;
+  while (1)
+  {
+    if (PORTCbits.RC12 == 0 && !_hasRun)
+    {
+      LATBbits.LATB15 = 0;
       _hasRun++;
       LATBbits.LATB15 = fatfs_read_test();
-      // LATBbits.LATB15 = fatfs_list_directory_test();
+      //LATBbits.LATB15 = fatfs_list_directory_test();
+
 
       // Turn the light back off if we passed
-      __delay_ms(3000);
-      LATBbits.LATB15 = 0;
     }
   }
-  return 1;
+  return 1; 
 }
