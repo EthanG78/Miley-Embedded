@@ -229,8 +229,9 @@ DSTATUS disk_initialize (
     spi_do_high();
     spi_cs_high();
     
-    /* at least 74 dummy clocks */    
-    for (int k = 0; k < 11; k++)
+    /* at least 74 dummy clocks */
+    int k;
+    for (k = 0; k < 11; k++)
     {
         spi_exchangeByte(0xFF);
     }
