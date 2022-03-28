@@ -10,8 +10,7 @@ void init_spi_io();
 void init_timer1();
 void init_interrupts();
 void init_primary_pll();
-
-int setup_pwm();
-void setup_dac();
+int init_pwm();
+void init_dac();
 
 #endif

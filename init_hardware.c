@@ -29,14 +29,14 @@ void init_timer1() {
   T1CONbits.TCKPS = 0;   // divide input clock by 1
   T1CONbits.TECS = 2;    // use internal Fosc clock
   T1CONbits.TON = 1;     // timer on
-  PR1 = 3200;            // cycles before interrupt -> 40KHz
+  PR1 = 800;           // cycles before interrupt -> 40KHz
 }
 
 void init_interrupts() {
   INTCON1bits.NSTDIS = 0;  // allow nested interrupts
   IPC0bits.T1IP = 1;       // timer1 interrupt priority = 1
   IFS0bits.T1IF = 0;       // reset timer1 interrupt flag
-  IEC0bits.T1IE = 1;       // enable timer 1 interrupt
+  IEC0bits.T1IE = 0;       // enable timer 1 interrupt
   INTCON2bits.GIE = 1;     // enable global interrupts
 }
 
@@ -47,7 +47,7 @@ void init_primary_pll() {
   PLLDIVbits.POST2DIV = 1;  // F_PLL output div2
 }
 
-int setup_pwm() {
+int init_pwm() {
   PCLKCONbits.DIVSEL = 0;   // 1:2 divide ratio (smallest)
   PCLKCONbits.MCLKSEL = 3;  // master PWM clock is AF_PLLo
   PG8CONLbits.CLKSEL = 1;   // PWM module uses master PWM clock
@@ -77,7 +77,7 @@ int setup_pwm() {
   return 0;
 }
 
-void setup_dac() {
+void init_dac() {
   DACCTRL1Lbits.CLKSEL = 2;      // use AF_PLL as DAC clock
   DACCTRL1Lbits.CLKDIV = 0;      // divide input clock by 1
   DAC1CONLbits.DACOEN = 1;       // enable DAC 1 output on pin DACOUT1
