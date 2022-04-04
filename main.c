@@ -1,6 +1,3 @@
-#include <xc.h>
-#include <stdlib.h>
-
 #include "FatFS/ff.h"
 #include "chip_fuse_bits.h"
 #include "init_hardware.h"
@@ -9,6 +6,10 @@
 
 #define FCY 64000000UL
 #include <libpic30.h>
+#include <xc.h>
+#include <stdlib.h>
+
+#define AUDIO_TIMEOUT_MS 1
 
 // returns a random file name from the provided directory
 // the directory object will be refreshed if the end of the directory is reached
@@ -22,7 +23,8 @@ TCHAR* random_file_name(const char* const directory_name, DIR* directory,
     }
 
     // end of directory, refresh directory object
-    if (read_file->fname[0] == '\0') {
+    const TCHAR first_letter = read_file->fname[0];
+    if (first_letter == '\0') {
       f_closedir(directory);
       if(f_opendir(directory, directory_name) != FR_OK) {
         return NULL;
@@ -31,9 +33,10 @@ TCHAR* random_file_name(const char* const directory_name, DIR* directory,
     }
     
     // directory, hidden file or special directory -> ignore
-    if (read_file->fattrib & AM_DIR || name == '.') {
+    if (read_file->fattrib & AM_DIR || first_letter == '.') {
       continue;
     }
+
 
     --remaining_reads;
   }
@@ -79,6 +82,7 @@ int main(void) {
       continue;
     }
     
+    __delay_ms(AUDIO_TIMEOUT_MS)
     wait_for_door_trigger();
     play_audio_file(&file);
     f_close(&file);
