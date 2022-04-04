@@ -11,7 +11,7 @@
 
 #include <xc.h>
 
-#define FCY 64000000UL
+#define FCY 128000000UL
 #include <libpic30.h>
 
 /* Definitions for MMC/SDC command */
@@ -216,8 +216,7 @@ DSTATUS disk_initialize(
 
     __builtin_write_RPCON(0x0000);  // unlock PPS
     
-    RPOR14bits.RP60R = 5;
-    //RPOR15bits.RP63R = 5;           //RC15->SPI1:SDO1
+    RPOR14bits.RP60R = 5;           //RC15->SPI1:SDO1
     
     __builtin_write_RPCON(0x0800);  // lock PPS
     

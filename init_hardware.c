@@ -25,21 +25,21 @@ void init_digital_input() {
 void init_digital_outputs() {
   SINGLE_INIT()
   // Controls gain stage with gain 0: Digital pin
-  TRISDbits.TRISD3 = 0; // Output pin SDA_1
+  TRISDbits.TRISD3 = PIN_OUTPUT; // SDA_1
     
   // Controls gain stage -1.82: Digital pin
-  TRISDbits.TRISD2 = 0; // Output pin SCL_1
+  TRISDbits.TRISD2 = PIN_OUTPUT; // SCL_1
     
   //Controls gain stage -1.199: Digital pin
-  TRISBbits.TRISB11 = 0; // Output pin TX_1
+  TRISBbits.TRISB11 = PIN_OUTPUT; // TX_1
 
   // Controls gain stage -1.03: Digital pin
-  TRISCbits.TRISC14 = 0; // Output pin RX_1
+  TRISCbits.TRISC14 = PIN_OUTPUT; // RX_1
 }
 
 void init_primary_pll() {
   SINGLE_INIT()
-  CLKDIVbits.PLLPRE = 4;     // PLL input clock div
+  CLKDIVbits.PLLPRE = 2;     // PLL input clock div
   PLLFBDbits.PLLFBDIV = 16;  // PLL feedback div
   PLLDIVbits.POST1DIV = 1;   // F_PLL output div1
   PLLDIVbits.POST2DIV = 1;   // F_PLL output div2
@@ -65,7 +65,7 @@ void init_timer1() {
   T1CONbits.TCKPS = 0;   // divide input clock by 1
   T1CONbits.TECS = 2;    // use internal Fosc clock
   T1CONbits.TON = 1;     // timer on
-  PR1 = 800;             // cycles before interrupt -> 40KHz
+  PR1 = 1600;            // cycles before interrupt -> 40KHz
 }
 
 void init_dac() {

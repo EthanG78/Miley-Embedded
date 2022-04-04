@@ -4,7 +4,7 @@
 #include "audio_output.h"
 #include "door_sensor.h"
 
-#define FCY 64000000UL
+#define FCY 128000000UL
 #include <libpic30.h>
 #include <xc.h>
 #include <stdlib.h>
@@ -52,7 +52,7 @@ int main(void) {
   init_door_sensor();
 
   TRISDbits.TRISD15 = PIN_OUTPUT;
-  LATDbits.LATD15 = 1;  // enable speaker
+  LATDbits.LATD15 = 0;  // enable speaker
 
   FATFS sd_card;
   // mount sd card
