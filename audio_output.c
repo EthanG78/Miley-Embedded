@@ -71,7 +71,7 @@ void play_audio_file(FIL* const file) {
   playing_audio = false;
 }
 
-static SAMPLE next_audio_sample() {
+static void next_audio_sample() {
   const ptrdiff_t next_sample_offset = ((BYTE*)(current_sample + 1)) - buffers;
   current_sample = (SAMPLE*)(buffers + next_sample_offset % total_buffer_bytes);
 
@@ -113,9 +113,9 @@ static SAMPLE sin_wave() {
 
 static void __attribute__((__interrupt__, no_auto_psv)) _T1Interrupt(void) {
   if (playing_audio) {
-    DAC1DATHbits.DACDATH = sin_wave();
-    //DAC1DATHbits.DACDATH = *current_sample;
-    //next_audio_sample();
+    //DAC1DATHbits.DACDATH = sin_wave();
+    DAC1DATHbits.DACDATH = *current_sample;
+    next_audio_sample();
   } else {
     ADCON3Lbits.SWCTRG = 1;  // trigger ADC conversion
     const uint16_t noise = mic_avg_amplitude();
