@@ -4,11 +4,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
+#include <math.h>
 #include <xc.h>
-
-//#include "FatFS/ff.h"
-//#include "init_hardware.h"
-//#include "mic_interface.h"
 
 #define NUM_BUFFERS 2
 #define BUFFER_BYTES 8192  // factor of 512B SD card blocks
@@ -75,16 +72,12 @@ void play_audio_file(FIL* const file) {
 }
 
 static SAMPLE next_audio_sample() {
-  const SAMPLE current = *current_sample;
-
   const ptrdiff_t next_sample_offset = ((BYTE*)(current_sample + 1)) - buffers;
   current_sample = (SAMPLE*)(buffers + next_sample_offset % total_buffer_bytes);
 
   const ptrdiff_t current_sample_buffer_idx =
       ((BYTE*)current_sample - buffers) / BUFFER_BYTES;
   current_buffer = buffers + BUFFER_BYTES * current_sample_buffer_idx;
-
-  return current;
 }
 
 static void set_amplifier_gain(const uint16_t noise) {
@@ -109,9 +102,20 @@ static void set_amplifier_gain(const uint16_t noise) {
   LATCbits.LATC14 = level_1;
 }
 
+static SAMPLE sin_wave() {
+  static uint16_t sample_idx = 0;
+  const static int period = 30;
+  const float radians = 2 * 3.1415926535 * ((float)(sample_idx) / period);
+  ++sample_idx;
+  return 1840 * sin(radians) + 2047;
+}
+
+
 static void __attribute__((__interrupt__, no_auto_psv)) _T1Interrupt(void) {
   if (playing_audio) {
-    DAC1DATHbits.DACDATH = next_audio_sample();
+    DAC1DATHbits.DACDATH = sin_wave();
+    //DAC1DATHbits.DACDATH = *current_sample;
+    //next_audio_sample();
   } else {
     ADCON3Lbits.SWCTRG = 1;  // trigger ADC conversion
     const uint16_t noise = mic_avg_amplitude();
