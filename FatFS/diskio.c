@@ -238,7 +238,8 @@ DSTATUS disk_initialize (
     
     __builtin_write_RPCON(0x0000);  // unlock PPS
     
-    RPOR15bits.RP63R = 5;           //RC15->SPI1:SDO1
+    RPOR14bits.RP60R = 5;
+    //RPOR15bits.RP63R = 5;           //RC15->SPI1:SDO1
     
     __builtin_write_RPCON(0x0800);  // lock PPS
     
