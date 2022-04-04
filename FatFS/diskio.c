@@ -214,48 +214,43 @@ DSTATUS disk_initialize(
     spi_exchangeByte(0xFF);
   }
 
-  __builtin_write_RPCON(0x0000);  // unlock PPS
-
-  RPOR15bits.RP63R = 5;  // RC15->SPI1:SDO1
-
-  __builtin_write_RPCON(0x0800);  // lock PPS
-
-  ty = 0;
-  if (send_cmd(CMD0, 0) == 1) {       /* Enter Idle state */
-    if (send_cmd(CMD8, 0x1AA) == 1) { /* SDv2? */
-      for (n = 0; n < 4; n++)
-        ocr[n] =
-            spi_exchangeByte(0xFF); /* Get trailing return value of R7 resp */
-      if (ocr[2] == 0x01 &&
-          ocr[3] == 0xAA) { /* The card can work at vdd range of 2.7-3.6V */
-        for (tmr = 1000; tmr;
-             tmr--) { /* Wait for leaving idle state (ACMD41 with HCS bit) */
-          if (send_cmd(ACMD41, 1UL << 30) == 0) break;
-          __delay_ms(10);
-        }
-        if (tmr && send_cmd(CMD58, 0) == 0) { /* Check CCS bit in the OCR */
-          for (n = 0; n < 4; n++) ocr[n] = spi_exchangeByte(0xFF);
-          ty = (ocr[0] & 0x40) ? CT_SD2 | CT_BLOCK : CT_SD2; /* SDv2 */
-        }
-      }
-    } else { /* SDv1 or MMCv3 */
-      if (send_cmd(ACMD41, 0) <= 1) {
-        ty = CT_SD1;
-        cmd = ACMD41; /* SDv1 */
-      } else {
-        ty = CT_MMC;
-        cmd = CMD1; /* MMCv3 */
-      }
-      for (tmr = 1000; tmr; tmr--) { /* Wait for leaving idle state */
-        if (send_cmd(cmd, 0) == 0) break;
-        __delay_ms(10);
-      }
-      if (!tmr || send_cmd(CMD16, 512) != 0) /* Set R/W block length to 512 */
-        ty = 0;
-    }
-  }
-  CardType = ty;
-  deselect();
+    __builtin_write_RPCON(0x0000);  // unlock PPS
+    
+    RPOR14bits.RP60R = 5;
+    //RPOR15bits.RP63R = 5;           //RC15->SPI1:SDO1
+    
+    __builtin_write_RPCON(0x0800);  // lock PPS
+    
+	ty = 0;
+	if (send_cmd(CMD0, 0) == 1) {			/* Enter Idle state */
+		if (send_cmd(CMD8, 0x1AA) == 1) {	/* SDv2? */
+			for (n = 0; n < 4; n++) ocr[n] = spi_exchangeByte(0xFF);	/* Get trailing return value of R7 resp */
+			if (ocr[2] == 0x01 && ocr[3] == 0xAA) {		/* The card can work at vdd range of 2.7-3.6V */
+				for (tmr = 1000; tmr; tmr--) {			/* Wait for leaving idle state (ACMD41 with HCS bit) */
+					if (send_cmd(ACMD41, 1UL << 30) == 0) break;
+					__delay_ms(10);
+				}
+				if (tmr && send_cmd(CMD58, 0) == 0) {		/* Check CCS bit in the OCR */
+					for (n = 0; n < 4; n++) ocr[n] = spi_exchangeByte(0xFF);
+					ty = (ocr[0] & 0x40) ? CT_SD2 | CT_BLOCK : CT_SD2;	/* SDv2 */
+				}
+			}
+		} else {							/* SDv1 or MMCv3 */
+			if (send_cmd(ACMD41, 0) <= 1) 	{
+				ty = CT_SD1; cmd = ACMD41;	/* SDv1 */
+			} else {
+				ty = CT_MMC; cmd = CMD1;	/* MMCv3 */
+			}
+			for (tmr = 1000; tmr; tmr--) {			/* Wait for leaving idle state */
+				if (send_cmd(cmd, 0) == 0) break;
+				__delay_ms(10);
+			}
+			if (!tmr || send_cmd(CMD16, 512) != 0)	/* Set R/W block length to 512 */
+				ty = 0;
+		}
+	}
+	CardType = ty;
+	deselect();
 
   if (ty) { /* Initialization succeeded */
     Stat &= ~STA_NOINIT;

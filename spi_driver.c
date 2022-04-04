@@ -126,14 +126,14 @@ uint8_t spi_exchangeByte(const uint8_t b) {
 }
 
 // Sets the SPI chip select low
-void spi_cs_low() { LATBbits.LATB14 = 0; }
+void spi_cs_low() { LATBbits.LATB15 = 0; }
 
 // Sets the SPI chip select high
-void spi_cs_high() { LATBbits.LATB14 = 1; }
+void spi_cs_high() { LATBbits.LATB15 = 1; }
 
 // Sets the data out line on
 // the controller high
-void spi_do_high() { LATCbits.LATC15 = 1; }
+void spi_do_high() { LATCbits.LATC12 = 1; }
 
 // Sets the data out line on the controller low
-void spi_do_low() { LATCbits.LATC15 = 0; }
+void spi_do_low() { LATCbits.LATC12 = 0; }
