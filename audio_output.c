@@ -89,23 +89,21 @@ static void set_amplifier_gain(const uint16_t noise) {
   uint16_t level_3 = 0;
   uint16_t level_4 = 0;
 
-  // WIP: THESE VALUES ARE BS BECAUSE THE ADC 
-  // IS FEEDING US WEIRDNESS
   if(noise >= 600){
     level_4 = 1;		//activate gain stage: 1 V/V in loud environment
   } else if(noise >= 256){
     level_3 = 1;		//activate gain stage: 0.82 V/V
-  } else if(noise >= 128){
+  } else if(noise >= 100){
     level_2 = 1;		//activate gain stage: 0.199 V/V
   } else if(noise >= 0) {
     level_1 = 1;		//activate gain stage: 0.03 V/V in quiet environment
   }
   
   // Set gain value
-  //LATDbits.LATD4 = level_4;
-  //LATDbits.LATD3 = level_3;
-  //LATBbits.LATB12 = level_2;
-  //LATCbits.LATC15 = level_1;
+  LATDbits.LATD4 = level_4;
+  LATDbits.LATD3 = level_3;
+  LATBbits.LATB12 = level_2;
+  LATCbits.LATC15 = level_1;
 }
 
 static SAMPLE sin_wave() {
@@ -119,7 +117,6 @@ static SAMPLE sin_wave() {
 
 static void __attribute__((__interrupt__, no_auto_psv)) _T1Interrupt(void) {
   if (playing_audio) {
-    //DAC1DATHbits.DACDATH = sin_wave();
     DAC1DATHbits.DACDATH = *current_sample;
     next_audio_sample();
   } else {

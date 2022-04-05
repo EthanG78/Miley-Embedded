@@ -5,17 +5,19 @@
 #include "init_hardware.h"
 
 #define MIC_SAMPLE_BIAS 2048
-#define BUFFER_SIZE 128
+#define BUFFER_SIZE 1024
 
 uint16_t samples_in_buffer = 0;
 uint16_t average_buffer[BUFFER_SIZE];
-uint16_t amplitude_sum = 0;
-uint16_t avg_amplitude = 0;
+uint32_t amplitude_sum;
+uint16_t avg_amplitude;
 
 void init_mic_interface() {
   init_interrupts();
   init_timer1();
   init_adc();
+  amplitude_sum = 0;
+  avg_amplitude = 0;
 }
 
 uint16_t mic_avg_amplitude() { return avg_amplitude; }
@@ -39,7 +41,7 @@ static void handle_mic_sample(const uint16_t sample) {
   }
 
   // add new sample to buffer
-  average_buffer[samples_in_buffer - 1] = sample;
+  average_buffer[samples_in_buffer - 1] = amplitude;
 
   // update average
   avg_amplitude = amplitude_sum / samples_in_buffer;
