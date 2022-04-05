@@ -25,16 +25,20 @@ void init_digital_input() {
 void init_digital_outputs() {
   SINGLE_INIT()
   // Controls gain stage with gain 0: Digital pin
-  TRISDbits.TRISD3 = PIN_OUTPUT; // SDA_1
+  TRISDbits.TRISD4 = PIN_OUTPUT; // SDA_1
+  LATDbits.LATD4 = 0;
     
   // Controls gain stage -1.82: Digital pin
-  TRISDbits.TRISD2 = PIN_OUTPUT; // SCL_1
+  TRISDbits.TRISD3 = PIN_OUTPUT; // SCL_1
+  LATDbits.LATD3 = 0;
     
   //Controls gain stage -1.199: Digital pin
-  TRISBbits.TRISB11 = PIN_OUTPUT; // TX_1
+  TRISBbits.TRISB12 = PIN_OUTPUT; // TX_1
+  LATBbits.LATB12 = 0;
 
   // Controls gain stage -1.03: Digital pin
-  TRISCbits.TRISC14 = PIN_OUTPUT; // RX_1
+  TRISCbits.TRISC15 = PIN_OUTPUT; // RX_1
+  LATCbits.LATC15 = 0;
 }
 
 void init_primary_pll() {

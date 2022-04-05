@@ -9,8 +9,8 @@
 
 uint16_t samples_in_buffer = 0;
 uint16_t average_buffer[BUFFER_SIZE];
-uint32_t amplitude_sum = 0;
-uint32_t avg_amplitude = 0;
+uint16_t amplitude_sum = 0;
+uint16_t avg_amplitude = 0;
 
 void init_mic_interface() {
   init_interrupts();

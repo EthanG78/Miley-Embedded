@@ -7,6 +7,9 @@
 #include <math.h>
 #include <xc.h>
 
+#define FCY 128000000UL
+#include <libpic30.h>
+
 #define NUM_BUFFERS 2
 #define BUFFER_BYTES 8192  // factor of 512B SD card blocks
 
@@ -81,25 +84,28 @@ static void next_audio_sample() {
 }
 
 static void set_amplifier_gain(const uint16_t noise) {
-  uint16_t level_4 = 0;
-  uint16_t level_3 = 0;
-  uint16_t level_2 = 0;
   uint16_t level_1 = 0;
+  uint16_t level_2 = 0;
+  uint16_t level_3 = 0;
+  uint16_t level_4 = 0;
 
-  if(noise >= 3072){
+  // WIP: THESE VALUES ARE BS BECAUSE THE ADC 
+  // IS FEEDING US WEIRDNESS
+  if(noise >= 600){
     level_4 = 1;		//activate gain stage: 1 V/V in loud environment
-  } else if(noise >= 2048){
+  } else if(noise >= 256){
     level_3 = 1;		//activate gain stage: 0.82 V/V
-  } else if(noise >= 1024){
+  } else if(noise >= 128){
     level_2 = 1;		//activate gain stage: 0.199 V/V
   } else if(noise >= 0) {
     level_1 = 1;		//activate gain stage: 0.03 V/V in quiet environment
   }
   
-  LATDbits.LATD3 = level_4;
-  LATDbits.LATD2 = level_3;
-  LATBbits.LATB11 = level_2;
-  LATCbits.LATC14 = level_1;
+  // Set gain value
+  //LATDbits.LATD4 = level_4;
+  //LATDbits.LATD3 = level_3;
+  //LATBbits.LATB12 = level_2;
+  //LATCbits.LATC15 = level_1;
 }
 
 static SAMPLE sin_wave() {
@@ -121,5 +127,6 @@ static void __attribute__((__interrupt__, no_auto_psv)) _T1Interrupt(void) {
     const uint16_t noise = mic_avg_amplitude();
     set_amplifier_gain(noise);
   }
+  
   IFS0bits.T1IF = 0;  // clear Timer1 Interrupt Flag
 }

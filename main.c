@@ -15,6 +15,7 @@
 // the directory object will be refreshed if the end of the directory is reached
 TCHAR* random_file_name(const char* const directory_name, DIR* directory,
                       FILINFO* read_file) {
+    
   int remaining_reads;
   for (remaining_reads = rand() % 8; remaining_reads >= 0;) {
     // read a directory item
