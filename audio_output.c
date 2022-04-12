@@ -89,11 +89,11 @@ static void set_amplifier_gain(const uint16_t noise) {
   uint16_t level_3 = 0;
   uint16_t level_4 = 0;
 
-  if(noise >= 600){
+  if(noise >= 160){
     level_4 = 1;		//activate gain stage: 1 V/V in loud environment
-  } else if(noise >= 256){
+  } else if(noise >= 100){ // 80
     level_3 = 1;		//activate gain stage: 0.82 V/V
-  } else if(noise >= 100){
+  } else if(noise >= 30){ // 21
     level_2 = 1;		//activate gain stage: 0.199 V/V
   } else if(noise >= 0) {
     level_1 = 1;		//activate gain stage: 0.03 V/V in quiet environment

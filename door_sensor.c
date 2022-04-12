@@ -10,12 +10,12 @@ void init_door_sensor() {
 
 void wait_for_door_trigger() {
   // wait for door to close
-  while (PORTCbits.RC3 == 0) {
+  while (PORTCbits.RC3 == 1) {
     continue;
   }
   
   // wait for door to open
-  while(PORTCbits.RC3 == 1) {
+  while(PORTCbits.RC3 == 0) {
     continue;
   }
 }
